@@ -151,6 +151,30 @@ _OFFICIAL_DOCS_PRICING: Dict[tuple[str, str], PricingEntry] = {
         source_url="https://openai.com/index/previewing-gpt-5-6-sol/",
         pricing_version="openai-gpt-5.6-2026-07",
     ),
+    # ── Apple Foundation Models ──────────────────────────────────────────
+    # On-device (`system`) runs locally and is free; Private Cloud Compute
+    # (`pcc`) is included with Apple Intelligence and is not dollar-metered.
+    # Encode as zero-cost so usage accounting shows $0 rather than "unknown".
+    (
+        "apple",
+        "apple/system",
+    ): PricingEntry(
+        input_cost_per_million=Decimal("0"),
+        output_cost_per_million=Decimal("0"),
+        source="official_docs_snapshot",
+        source_url="https://developer.apple.com/documentation/foundationmodels",
+        pricing_version="apple-fm-2026-06",
+    ),
+    (
+        "apple",
+        "apple/pcc",
+    ): PricingEntry(
+        input_cost_per_million=Decimal("0"),
+        output_cost_per_million=Decimal("0"),
+        source="official_docs_snapshot",
+        source_url="https://developer.apple.com/documentation/foundationmodels",
+        pricing_version="apple-fm-2026-06",
+    ),
     # ── Anthropic Claude 4.8 ─────────────────────────────────────────────
     # Same $5/$25 base pricing as 4.6/4.7.  Fast-mode variant is a separate
     # model ID with 2x premium (vs the 6x premium on older Opus generations).

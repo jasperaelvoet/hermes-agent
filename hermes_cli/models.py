@@ -271,6 +271,10 @@ _PROVIDER_MODELS: dict[str, list[str]] = {
     ],
     "openai-codex": _codex_curated_models(),
     "xai-oauth": _xai_curated_models(),
+    "apple": [
+        "apple/system",
+        "apple/pcc",
+    ],
     "copilot-acp": [
         "copilot-acp",
     ],
@@ -1092,6 +1096,7 @@ CANONICAL_PROVIDERS: list[ProviderEntry] = [
     ProviderEntry("nvidia",         "NVIDIA NIM",               "NVIDIA NIM (Nemotron models via build.nvidia.com or local NIM)"),
     ProviderEntry("copilot",        "GitHub Copilot",           "GitHub Copilot (Uses GITHUB_TOKEN or gh auth token)"),
     ProviderEntry("copilot-acp",    "GitHub Copilot ACP",       "GitHub Copilot ACP (Spawns copilot --acp --stdio)"),
+    ProviderEntry("apple",          "Apple Foundation Models",  "Apple on-device + PCC via `fm serve` (macOS 27+) — experimental, small context"),
     ProviderEntry("huggingface",    "Hugging Face",             "Hugging Face Inference Providers"),
     ProviderEntry("gemini",         "Google AI Studio",         "Google AI Studio (Native Gemini API)"),
     ProviderEntry("vertex",         "Google Vertex AI",         "Google Vertex AI (Gemini via GCP; OAuth2 service account or ADC, GCP billing/quotas)"),
@@ -1254,6 +1259,9 @@ _PROVIDER_ALIASES = {
     "github-model": "copilot",
     "github-copilot-acp": "copilot-acp",
     "copilot-acp-agent": "copilot-acp",
+    "apple-fm": "apple",
+    "apple-foundation-models": "apple",
+    "foundation-models": "apple",
     "google": "gemini",
     "google-gemini": "gemini",
     "google-ai-studio": "gemini",

@@ -2014,6 +2014,23 @@ def create_openai_client(agent, client_kwargs: dict, *, reason: str, shared: boo
                 agent._client_log_context(),
             )
             return client
+    if agent.provider == "apple" or str(client_kwargs.get("base_url", "")).startswith("applefm://"):
+        from agent.apple_fm_client import AppleFMClient
+
+        # AppleFMClient talks to a managed `fm serve` process over loopback;
+        # strip OpenAI-only kwargs (e.g. http_client) it does not accept.
+        safe_kwargs = {
+            k: v for k, v in client_kwargs.items()
+            if k in {"api_key", "base_url", "default_headers", "timeout"}
+        }
+        client = AppleFMClient(**safe_kwargs)
+        _ra().logger.info(
+            "Apple Foundation Models client created (%s, shared=%s) %s",
+            reason,
+            shared,
+            agent._client_log_context(),
+        )
+        return client
     # Inject TCP keepalives so the kernel detects dead provider connections
     # instead of letting them sit silently in CLOSE-WAIT (#10324).  Without
     # this, a peer that drops mid-stream leaves the socket in a state where

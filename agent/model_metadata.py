@@ -209,6 +209,12 @@ _LOCAL_CTX_PROBE_CACHE: Dict[tuple, tuple] = {}
 # all miss. Replaced the previous 80+ entry dict.
 # For provider-specific context lengths, models.dev is the primary source.
 DEFAULT_CONTEXT_LENGTHS = {
+    # Apple Foundation Models (macOS 27+, via `fm serve`). The on-device
+    # `system` model has an 8192-token window (WWDC26); Private Cloud Compute
+    # (`pcc`) is ~32K. Keyed on the prefixed ids — the agent preserves the
+    # `apple/` prefix (apple is pass-through in normalize_model_for_provider).
+    "apple/system": 8192,
+    "apple/pcc": 32768,
     # Anthropic Claude 4.6 (1M context) — bare IDs only to avoid
     # fuzzy-match collisions (e.g. "anthropic/claude-sonnet-4" is a
     # substring of "anthropic/claude-sonnet-4.6").

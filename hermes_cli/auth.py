@@ -232,6 +232,13 @@ PROVIDER_REGISTRY: Dict[str, ProviderConfig] = {
         inference_base_url=DEFAULT_COPILOT_ACP_BASE_URL,
         base_url_env_var="COPILOT_ACP_BASE_URL",
     ),
+    "apple": ProviderConfig(
+        id="apple",
+        name="Apple Foundation Models",
+        auth_type="external_process",
+        inference_base_url="applefm://local",
+        base_url_env_var="APPLE_FM_BASE_URL",
+    ),
     "gemini": ProviderConfig(
         id="gemini",
         name="Google AI Studio",
@@ -1897,6 +1904,7 @@ def resolve_provider(
         "github": "copilot", "github-copilot": "copilot",
         "github-models": "copilot", "github-model": "copilot",
         "github-copilot-acp": "copilot-acp", "copilot-acp-agent": "copilot-acp",
+        "apple-fm": "apple", "apple-foundation-models": "apple", "foundation-models": "apple",
         "opencode": "opencode-zen", "zen": "opencode-zen",
         "qwen-portal": "qwen-oauth", "qwen-cli": "qwen-oauth", "qwen-oauth": "qwen-oauth",
         "hf": "huggingface", "hugging-face": "huggingface", "huggingface-hub": "huggingface",
@@ -6745,6 +6753,57 @@ def get_external_process_provider_status(provider_id: str) -> Dict[str, Any]:
     }
 
 
+def get_apple_fm_auth_status() -> Dict[str, Any]:
+    """Status snapshot for Apple Foundation Models (the ``fm`` CLI).
+
+    No API key — availability is gated by macOS / Apple Intelligence. Report
+    "configured" when the ``fm`` binary is present and surface per-model
+    availability from a read-only ``fm available`` probe when possible.
+    """
+    import subprocess
+
+    command = os.getenv("HERMES_APPLE_FM_COMMAND", "").strip() or "fm"
+    resolved = shutil.which(command) or (command if os.path.exists(command) else None)
+    if not resolved and os.path.exists("/usr/bin/fm"):
+        resolved = "/usr/bin/fm"
+
+    status: Dict[str, Any] = {
+        "configured": bool(resolved),
+        "logged_in": bool(resolved),
+        "provider": "apple",
+        "name": "Apple Foundation Models",
+        "command": command,
+        "resolved_command": resolved,
+        "base_url": "applefm://local",
+    }
+    if not resolved:
+        status["error"] = (
+            "Apple Foundation Models CLI ('fm') not found. Requires macOS 26+/27 "
+            "with Apple Intelligence; set HERMES_APPLE_FM_COMMAND to override."
+        )
+        return status
+
+    try:
+        proc = subprocess.run(
+            [resolved, "available"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            env={**os.environ, "NO_COLOR": "1"},
+        )
+        out = f"{proc.stdout}\n{proc.stderr}".lower()
+        status["system_available"] = "system model available" in out or (
+            "system" in out and "not available" not in out
+        )
+        status["pcc_available"] = (
+            "pcc" in out and "available" in out and "not available" not in out
+            and "unavailable" not in out
+        )
+    except Exception:
+        pass
+    return status
+
+
 def get_auth_status(provider_id: Optional[str] = None) -> Dict[str, Any]:
     """Generic auth status dispatcher."""
     target = (provider_id or get_active_provider() or "").strip().lower()
@@ -6764,6 +6823,8 @@ def get_auth_status(provider_id: Optional[str] = None) -> Dict[str, Any]:
         return get_minimax_oauth_auth_status()
     if target == "copilot-acp":
         return get_external_process_provider_status(target)
+    if target == "apple":
+        return get_apple_fm_auth_status()
     if target == "azure-foundry":
         return _get_azure_foundry_auth_status()
     # API-key providers
@@ -6940,6 +7001,32 @@ def resolve_external_process_provider_credentials(provider_id: str) -> Dict[str,
             provider=provider_id,
             code="invalid_provider",
         )
+
+    if provider_id == "apple":
+        base_url = os.getenv(pconfig.base_url_env_var, "").strip() if pconfig.base_url_env_var else ""
+        if not base_url:
+            base_url = pconfig.inference_base_url
+        fm_command = os.getenv("HERMES_APPLE_FM_COMMAND", "").strip() or "fm"
+        resolved = shutil.which(fm_command) or (
+            fm_command if os.path.exists(fm_command) else None
+        )
+        if not resolved and os.path.exists("/usr/bin/fm"):
+            resolved = "/usr/bin/fm"
+        if not resolved:
+            raise AuthError(
+                "Apple Foundation Models CLI ('fm') not found. Requires macOS 26+/27 "
+                "with Apple Intelligence; set HERMES_APPLE_FM_COMMAND to override.",
+                provider=provider_id,
+                code="missing_fm_cli",
+            )
+        return {
+            "provider": provider_id,
+            "api_key": "apple-fm",
+            "base_url": base_url.rstrip("/"),
+            "command": resolved,
+            "args": ["serve"],
+            "source": "process",
+        }
 
     base_url = os.getenv(pconfig.base_url_env_var, "").strip() if pconfig.base_url_env_var else ""
     if not base_url:

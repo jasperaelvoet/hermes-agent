@@ -1945,6 +1945,89 @@ def _model_flow_copilot_acp(config, current_model=""):
 
     print(f"Default model set to: {selected} (via {pconfig.name})")
 
+def _model_flow_apple_fm(config, current_model=""):
+    """Apple Foundation Models flow using the local `fm` CLI (macOS 27+)."""
+    from hermes_cli.auth import (
+        PROVIDER_REGISTRY,
+        _prompt_model_selection,
+        _save_model_choice,
+        deactivate_provider,
+        get_apple_fm_auth_status,
+        resolve_external_process_provider_credentials,
+    )
+    from hermes_cli.config import load_config, save_config
+    from hermes_cli.models import _PROVIDER_MODELS
+
+    del config
+
+    provider_id = "apple"
+    pconfig = PROVIDER_REGISTRY[provider_id]
+
+    status = get_apple_fm_auth_status()
+    if not status.get("configured"):
+        print(f"  ⚠ {status.get('error') or 'Apple Foundation Models CLI (fm) not found.'}")
+        print("  Requires macOS 26+/27 with Apple Intelligence enabled.")
+        print("  Verify with `fm available`, or set HERMES_APPLE_FM_COMMAND to the binary path.")
+        return
+
+    sys_ok = status.get("system_available")
+    pcc_ok = status.get("pcc_available")
+
+    def _tag(ok):
+        if ok is None:
+            return ""
+        return "  [available]" if ok else "  [unavailable here]"
+
+    print("  Apple Foundation Models run locally through the `fm` CLI — no API key,")
+    print("  no cloud account, nothing to install beyond macOS itself.")
+    print()
+    print("  Two models share the same API:")
+    print()
+    print(f"    apple/system  — On-device. Runs entirely on this Mac.{_tag(sys_ok)}")
+    print("                    Free, no quota, works offline, fully private.")
+    print("                    Small ~8K-token context → best for short prompts,")
+    print("                    quick edits, summaries, and classification.")
+    print()
+    print(f"    apple/pcc     — Private Cloud Compute: Apple's private servers.{_tag(pcc_ok)}")
+    print("                    Larger ~32K context and a stronger model → the")
+    print("                    realistic choice for full agent / coding loops.")
+    print("                    Still key-free and private (Apple can't retain or")
+    print("                    read your data), but quota-limited and requires a")
+    print("                    signed-in, entitled session.")
+    print()
+    print("  ⚠ Experimental: Hermes is tuned for >=64K-context models; apple/system")
+    print("    (~8K) and apple/pcc (~32K) are below that minimum, so the agent loop")
+    print("    may refuse to start. To try anyway, set model.context_length in")
+    print("    ~/.hermes/config.yaml. Best suited to short / one-shot tasks for now.")
+    print()
+
+    try:
+        creds = resolve_external_process_provider_credentials(provider_id)
+    except Exception as exc:
+        print(f"  ⚠ {exc}")
+        return
+    effective_base = creds.get("base_url") or pconfig.inference_base_url
+
+    model_list = _PROVIDER_MODELS.get("apple", ["apple/system", "apple/pcc"])
+    selected = _prompt_model_selection(model_list, current_model=current_model)
+    if not selected:
+        print("No change.")
+        return
+
+    _save_model_choice(selected)
+    cfg = load_config()
+    model = cfg.get("model")
+    if not isinstance(model, dict):
+        model = {"default": model} if model else {}
+        cfg["model"] = model
+    model["provider"] = provider_id
+    model["base_url"] = effective_base
+    model["api_mode"] = "chat_completions"
+    save_config(cfg)
+    deactivate_provider()
+
+    print(f"Default model set to: {selected} (via {pconfig.name})")
+
 def _model_flow_kimi(config, current_model=""):
     """Kimi / Moonshot model selection with automatic endpoint routing.
 

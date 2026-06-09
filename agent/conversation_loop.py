@@ -2144,6 +2144,11 @@ def run_conversation(
                     agent.provider in {"copilot-acp"}
                     or str(agent.base_url or "").lower().startswith("acp://copilot")
                     or str(agent.base_url or "").lower().startswith("acp+tcp://")
+                    # Apple FM uses a prompt-injection tool shim that needs the
+                    # full assistant text to parse <tool_call> blocks, so it
+                    # runs non-streaming (like the ACP client).
+                    or agent.provider == "apple"
+                    or str(agent.base_url or "").lower().startswith("applefm://")
                 ):
                     _use_streaming = False
                 # MoA streams only when a display/TTS consumer is present to

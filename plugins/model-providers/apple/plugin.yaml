@@ -1,0 +1,5 @@
+name: apple-provider
+kind: model-provider
+version: 1.0.0
+description: Apple Foundation Models (on-device + Private Cloud Compute) via the `fm` CLI
+author: Nous Research

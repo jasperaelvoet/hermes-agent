@@ -94,6 +94,12 @@ HERMES_OVERLAYS: Dict[str, HermesOverlay] = {
         base_url_override="acp://copilot",
         base_url_env_var="COPILOT_ACP_BASE_URL",
     ),
+    "apple": HermesOverlay(
+        transport="openai_chat",
+        auth_type="external_process",
+        base_url_override="applefm://local",
+        base_url_env_var="APPLE_FM_BASE_URL",
+    ),
     "github-copilot": HermesOverlay(
         transport="openai_chat",
         extra_env_vars=("COPILOT_GITHUB_TOKEN", "GH_TOKEN"),
@@ -279,6 +285,11 @@ ALIASES: Dict[str, str] = {
     "xai-oauth": "xai-oauth",
     "x-ai-oauth": "xai-oauth",
     "xai-grok-oauth": "xai-oauth",
+
+    # apple foundation models
+    "apple-fm": "apple",
+    "apple-foundation-models": "apple",
+    "foundation-models": "apple",
 
     # nvidia
     "nim": "nvidia",

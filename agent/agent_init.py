@@ -709,6 +709,8 @@ def init_agent(
         and agent.provider != "copilot-acp"
         and not str(agent.base_url or "").lower().startswith("acp://copilot")
         and not str(agent.base_url or "").lower().startswith("acp+tcp://")
+        and agent.provider != "apple"
+        and not str(agent.base_url or "").lower().startswith("applefm://")
         and not agent._is_azure_openai_url()
         and (
             agent._is_direct_openai_url()

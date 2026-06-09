@@ -799,6 +799,22 @@ def classify_api_error(
             should_fallback=True,
         )
 
+    # Apple Foundation Models — Private Cloud Compute availability.
+    # `fm serve` reports PCC unavailable ("PCC inference is not available in
+    # this context") when the login session lacks the entitlement or isn't
+    # signed in. That is deterministic for the current context, so a 503 →
+    # overloaded backoff would loop forever; classify as model_not_found so
+    # the loop fails over to another model (e.g. apple/system) and surfaces
+    # the guidance rather than retrying an endpoint that can't recover.
+    if "pcc inference is not available" in error_msg or (
+        "private cloud compute is unavailable" in error_msg
+    ):
+        return _result(
+            FailoverReason.model_not_found,
+            retryable=False,
+            should_fallback=True,
+        )
+
     # ── 2. HTTP status code classification ──────────────────────────
 
     if status_code is not None:
